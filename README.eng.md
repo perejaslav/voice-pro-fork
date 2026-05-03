@@ -60,4 +60,7 @@
 Original Project: [ABUS Voice-Pro](https://github.com/abus-aikorea/voice-pro).
 Fork Improvements: [perejaslav](https://github.com/perejaslav).
 
-Licensed under MIT. See `LICENSE` for details.
+---
+
+## ⚠️ Disclaimer
+**This is a test project.** Nothing has been thoroughly checked, and no guarantees of functionality or stability are provided. Use it at your own risk.
