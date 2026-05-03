@@ -58,6 +58,7 @@ def gulliver_tab(user_config: UserConfig):
                 whisper_language_dropdown = gr.Dropdown(label=i18n("Media Language"), choices=gulliver.get_whisper_languages(), value=user_config.get("whisper_language", 'english'), info=i18n(""))
                 compute_type_dropdown = gr.Dropdown(label=i18n("Compute Type"), choices=gulliver.get_whisper_compute_types(), value=user_config.get("whisper_compute_type", 'default'), info=i18n("Only for faster-whisper"))
                 denoise_level = gr.Slider(minimum=0, maximum=2, step=1, value=user_config.get("denoise_level", 0), label=i18n("Denoise Level"))
+                enable_lipsync = gr.Checkbox(label=i18n("Enable Lip-Sync"), value=user_config.get("enable_lipsync", False))
             with gr.Row():
                 whisper_default_button = gr.ClearButton(value=i18n("Load Defaults"))
                 whisper_button = gr.Button(value=i18n("Transcribe"), variant="primary")

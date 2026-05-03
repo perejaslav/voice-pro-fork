@@ -99,5 +99,6 @@ def batch_tts_tab(user_config: UserConfig):
                     outputs=[edge_tts_rate, edge_tts_volume, edge_tts_pitch])            
             
     tts_button.click(batch.gradio_dubbing_batch, 
-                inputs=[ms_voice_dropdown, edge_tts_pitch, edge_tts_rate, edge_tts_volume, audio_format_radio], 
+                inputs=[ms_voice_dropdown, edge_tts_pitch, edge_tts_rate, edge_tts_volume, audio_format_radio, enable_lipsync], 
+                outputs=[output_files])dge_tts_pitch, edge_tts_rate, edge_tts_volume, audio_format_radio], 
                 outputs=[output_files])

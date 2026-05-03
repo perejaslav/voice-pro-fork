@@ -103,6 +103,13 @@ def path_model_folder():
     return model_folder
   
 
+def path_lipsync_folder():
+    model_folder = path_model_folder()
+    lipsync_folder = os.path.join(model_folder, 'lipsync')
+    if not os.path.exists(lipsync_folder):
+        os.makedirs(lipsync_folder, exist_ok=True)
+    return lipsync_folder
+
 def path_workspace_folder():
     script_dir = os.getcwd()
     workspace_folder = os.path.join(script_dir, 'workspace')

@@ -37,6 +37,7 @@ class GradioBatchTTS:
         
         # self.fm = FileManager()
         self.batch_manager = BatchManager()
+        self.lipsync = LipSync()
 
         # self.downloader = YoutubeDownloader()
         self.voice_manager = MSVoiceManager(self.user_config.get('ms_language', "English"))
@@ -244,8 +245,74 @@ class GradioBatchTTS:
     
 
     
-    def gradio_dubbing_batch(self, voice_name: str, semitones, speed_factor, volume_factor, audio_format: str):
-        return None     
+    def gradio_dubbing_batch(self, voice_name: str, semitones, speed_factor, volume_factor, audio_format: str, enable_lipsync: bool = False):
+        logger.debug(f"[gradio_batch_tts.py] gradio_dubbing_batch - \
+                    voice_name = {voice_name}, \
+                    semitones = {semitones}, speed_factor = {speed_factor}, volume_factor = {volume_factor}, audio_format = {audio_format}, enable_lipsync = {enable_lipsync}")
+        
+        self.user_config.set("edge_tts_pitch", semitones)     
+        self.user_config.set("edge_tts_rate", speed_factor)
+        self.user_config.set("edge_tts_volume", volume_factor)             
+        self.user_config.set("audio_format", audio_format)
+        self.user_config.set("enable_lipsync", enable_lipsync)
+        
+        target_lang = self.user_config.get("translate_target_language", "English")
+        target_lang_code = self.translator.get_language_code(target_lang)
+        
+        ms_voice = self.voice_manager.get_voice(voice_name)
+        target_language_name = ms_voice.getLanguageName()
+
+        try:
+            for fm in self.batch_manager.get_all_fm():
+                # 1. Get translation SRT
+                subtitle_file = fm.get_translation(target_lang_code, '.srt')
+                if not subtitle_file or not os.path.exists(subtitle_file):
+                    logger.warning(f"[gradio_batch_tts.py] No translation SRT found for {fm.get_split('Source')}")
+                    continue
+                
+                # 2. TTS
+                source_audio_file = fm.get_split("Source.audio")
+                if not source_audio_file or not os.path.exists(source_audio_file):
+                    logger.warning(f"[gradio_batch_tts.py] No source audio found for {fm.get_split('Source')}")
+                    continue
+                    
+                aidub_audio_file = path_add_postfix(source_audio_file, f"_{target_language_name}")
+                
+                self.tts.srt_to_voice(subtitle_file, aidub_audio_file, ms_voice.name, semitones, speed_factor, volume_factor, audio_format)
+                fm.set_dubbing(f'{voice_name}.audio', aidub_audio_file)
+                
+                # 3. Mix
+                mixed_audio_file = path_add_postfix(source_audio_file, f"_mixed_{target_language_name}")
+                denoise_inst_path = fm.get_split("Instrumental.audio")
+                
+                if denoise_inst_path and os.path.exists(denoise_inst_path):
+                    ffmpeg_mix_audio(aidub_audio_file, denoise_inst_path, mixed_audio_file, 0, 0, audio_format)
+                else:
+                    # If no instrumental, just convert/copy the dubbed audio to mixed_audio_file
+                    ffmpeg_convert_audio(aidub_audio_file, mixed_audio_file, audio_format)
+                
+                fm.set_dubbing(f'mixed_{voice_name}.audio', mixed_audio_file)
+
+                # 4. Video Replace
+                source_video_file = fm.get_split("Source.video")
+                aidub_video_file = None
+                if source_video_file and os.path.exists(source_video_file):
+                    aidub_video_file = path_add_postfix(source_video_file, f"_{target_language_name}")
+                    ffmpeg_replace_audio(source_video_file, mixed_audio_file, aidub_video_file)
+                    fm.set_dubbing(f'{voice_name}.video', aidub_video_file)
+
+                # 5. Lip-Sync
+                if enable_lipsync and aidub_video_file:
+                    logger.info(f"Triggering Lip-Sync for batch file: {aidub_video_file}")
+                    sync_output = path_add_postfix(aidub_video_file, "_lipsync")
+                    aidub_video_file = self.lipsync.sync(aidub_video_file, mixed_audio_file, sync_output)
+                    fm.set_dubbing(f'{voice_name}.lipsync.video', aidub_video_file)
+
+            return self.batch_manager.get_all_files()
+        except Exception as e:
+            logger.error(f"[gradio_batch_tts.py] gradio_dubbing_batch - Error : {e}")
+            gr.Warning(f'{e}')
+            return self.batch_manager.get_all_files()
             
     
     def gradio_default_tts(self):

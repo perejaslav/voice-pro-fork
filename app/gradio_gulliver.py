@@ -324,11 +324,11 @@ class GradioGulliver:
     
     def gradio_edge_dubbing(self, 
                             translation_text, voice_name: str, 
-                            semitones, speed_factor, volume_factor, audio_format: str):
+                            semitones, speed_factor, volume_factor, audio_format: str, enable_lipsync: bool = False):
                          
         logger.debug(f"[gradio_gulliver.py] gradio_edge_dubbing - \
                     voice_name = {voice_name}, \
-                    semitones = {semitones}, speed_factor = {speed_factor}, volume_factor = {volume_factor}, audio_format = {audio_format}")
+                    semitones = {semitones}, speed_factor = {speed_factor}, volume_factor = {volume_factor}, audio_format = {audio_format}, enable_lipsync = {enable_lipsync}")
         
         if len(translation_text) < 1:
             logger.warning(f"[gradio_gulliver.py] gradio_edge_dubbing - no actions")
@@ -338,6 +338,7 @@ class GradioGulliver:
         self.user_config.set("edge_tts_rate", speed_factor)
         self.user_config.set("edge_tts_volume", volume_factor)             
         self.user_config.set("audio_format", audio_format)
+        self.user_config.set("enable_lipsync", enable_lipsync)
         
         
         aidub_video_file = None
@@ -356,6 +357,12 @@ class GradioGulliver:
         elif translation_text:
             aidub_video_file, mixed_audio_file = self._edge_tts_text(translation_text, 
                                                 voice_name, semitones, speed_factor, volume_factor, audio_format)
+
+        if enable_lipsync and aidub_video_file:
+            logger.info("Triggering Lip-Sync for Edge-TTS output...")
+            sync_output = path_add_postfix(aidub_video_file, "_lipsync")
+            aidub_video_file = self.lipsync.sync(aidub_video_file, mixed_audio_file, sync_output)
+            self.fm.set_dubbing(f'{voice_name}.lipsync.video', aidub_video_file)
 
         output_video_path = (aidub_video_file, translation_file) if aidub_video_file and translation_file else aidub_video_file
         output_audio_path = mixed_audio_file
@@ -449,16 +456,17 @@ class GradioGulliver:
     def gradio_f5_dubbing_single(self, 
                                  translation_text, 
                                  celeb_name, celeb_audio, celeb_transcript, 
-                                 model_choice, speed_factor, audio_format: str):
+                                 model_choice, speed_factor, audio_format: str, enable_lipsync: bool = False):
         
         logger.debug(f"[gradio_gulliver.py] gradio_f5_dubbing_single - \
                     celeb_name = {celeb_name}, celeb_audio = {celeb_audio}, \
-                    model_choice = {model_choice}, speed_factor = {speed_factor}, audio_format = {audio_format}")
+                    model_choice = {model_choice}, speed_factor = {speed_factor}, audio_format = {audio_format}, enable_lipsync = {enable_lipsync}")
         
         if len(translation_text) < 1:
             logger.warning(f"[gradio_gulliver.py] gradio_f5_dubbing_single - no actions")
             return None, None, self.fm.get_all_files() 
         
+        self.user_config.set("enable_lipsync", enable_lipsync)
             
         translation_file = None 
         if len(translation_text) > 0 and self._is_subtitle_format(translation_text):
@@ -476,6 +484,12 @@ class GradioGulliver:
         elif translation_text:
             aidub_video_file, mixed_audio_file = self._f5_tts_single(translation_text, 
                                                 celeb_name, celeb_audio, celeb_transcript, model_choice, speed_factor, audio_format)
+
+        if enable_lipsync and aidub_video_file:
+            logger.info("Triggering Lip-Sync for F5-TTS output...")
+            sync_output = path_add_postfix(aidub_video_file, "_lipsync")
+            aidub_video_file = self.lipsync.sync(aidub_video_file, mixed_audio_file, sync_output)
+            self.fm.set_dubbing(f'{celeb_name}.lipsync.video', aidub_video_file)
 
         output_video_path = (aidub_video_file, translation_file) if aidub_video_file and translation_file else aidub_video_file
         output_audio_path = mixed_audio_file
@@ -523,11 +537,12 @@ class GradioGulliver:
     def gradio_cosy_dubbing(self, 
                         translation_text, 
                         celeb_name, celeb_audio, celeb_transcript, 
-                        mode_choice, speed_factor, audio_format: str):
+                        mode_choice, speed_factor, audio_format: str, enable_lipsync: bool = False):
         if len(translation_text) < 1:
             logger.warning(f"[gradio_gulliver.py] gradio_f5_dubbing_single - no actions")
             return None, None, self.fm.get_all_files() 
         
+        self.user_config.set("enable_lipsync", enable_lipsync)
             
         translation_file = None 
         if len(translation_text) > 0 and self._is_subtitle_format(translation_text):
@@ -545,6 +560,12 @@ class GradioGulliver:
         elif translation_text:
             aidub_video_file, mixed_audio_file = self._cosy_tts_single(translation_text, 
                                                 celeb_name, celeb_audio, celeb_transcript, mode_choice, speed_factor, audio_format)
+
+        if enable_lipsync and aidub_video_file:
+            logger.info("Triggering Lip-Sync for CosyVoice output...")
+            sync_output = path_add_postfix(aidub_video_file, "_lipsync")
+            aidub_video_file = self.lipsync.sync(aidub_video_file, mixed_audio_file, sync_output)
+            self.fm.set_dubbing(f'{celeb_name}.lipsync.video', aidub_video_file)
 
         output_video_path = (aidub_video_file, translation_file) if aidub_video_file and translation_file else aidub_video_file
         output_audio_path = mixed_audio_file
@@ -592,11 +613,11 @@ class GradioGulliver:
     
     def gradio_kokoro_dubbing(self, 
                             translation_text, language_name, voice_name: str, 
-                            speed_factor, audio_format: str):
+                            speed_factor, audio_format: str, enable_lipsync: bool = False):
                          
         logger.debug(f"[gradio_gulliver.py] gradio_kokoro_dubbing - \
                     language_name = {language_name}, voice_name = {voice_name}, \
-                    speed_factor = {speed_factor}, audio_format = {audio_format}")
+                    speed_factor = {speed_factor}, audio_format = {audio_format}, enable_lipsync = {enable_lipsync}")
         
         if len(translation_text) < 1:
             logger.warning(f"[gradio_gulliver.py] gradio_kokoro_dubbing - no actions")
@@ -604,7 +625,7 @@ class GradioGulliver:
         
         # self.user_config.set("edge_tts_rate", speed_factor)  
         self.user_config.set("audio_format", audio_format)
-        
+        self.user_config.set("enable_lipsync", enable_lipsync)
         
         aidub_video_file = None
         mixed_audio_file = None                
@@ -623,7 +644,12 @@ class GradioGulliver:
             aidub_video_file, mixed_audio_file = self._kokoro_tts_text(translation_text, 
                                                 language_name, voice_name, speed_factor, audio_format)
         
-        
+        if enable_lipsync and aidub_video_file:
+            logger.info("Triggering Lip-Sync for Kokoro output...")
+            sync_output = path_add_postfix(aidub_video_file, "_lipsync")
+            aidub_video_file = self.lipsync.sync(aidub_video_file, mixed_audio_file, sync_output)
+            self.fm.set_dubbing(f'{voice_name}.lipsync.video', aidub_video_file)
+
         output_video_path = (aidub_video_file, translation_file) if aidub_video_file and translation_file else aidub_video_file
         output_audio_path = mixed_audio_file
         return output_video_path, output_audio_path, self.fm.get_all_files()        
